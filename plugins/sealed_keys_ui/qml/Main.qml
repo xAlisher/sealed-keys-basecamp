@@ -310,7 +310,7 @@ Rectangle {
             ColumnLayout {
                 Layout.fillWidth: true; spacing: 3
                 Text { text: title; color: root.ink; font.pixelSize: 15 }
-                Text { text: body; color: root.inkDim; font.pixelSize: 12.5; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { text: body; color: root.inkDim; font.pixelSize: 13; wrapMode: Text.WordWrap; Layout.fillWidth: true }
             }
             Button { text: actionText; enabled: parent.parent.enabled; onClicked: parent.parent.action() }
         }
