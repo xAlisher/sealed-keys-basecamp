@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <regex>
+#include <sstream>
 #include <sys/stat.h>
 
 namespace {
@@ -30,6 +31,10 @@ SealedKeysImpl::SealedKeysImpl() = default;
 
 std::string SealedKeysImpl::resolveCli() {
     if (isExecutable(m_cliPath)) return m_cliPath;
+    // Explicit override (survives AppImage PATH resets).
+    if (const char* bin = std::getenv("LEE_WALLET_BIN")) {
+        if (isExecutable(bin)) return bin;
+    }
     // Search PATH for a `wallet` binary.
     if (const char* path = std::getenv("PATH")) {
         std::string p(path);
@@ -69,11 +74,24 @@ SealedKeysImpl::CliResult SealedKeysImpl::runCli(const std::string& args) {
 }
 
 std::string SealedKeysImpl::scrapeKey(const std::string& out, const std::string& label) {
-    // Match e.g. "npk: <hex>", "npk = <hex>", "vpk <hex>" — hex or base58 token.
+    // Match e.g. "With npk <hex>", "vsk_d <hex>" — label followed by a hex token.
     std::regex re(label + R"([:=\s]+([0-9a-zA-Z]+))", std::regex::icase);
     std::smatch m;
     if (std::regex_search(out, m, re)) return m[1].str();
     return {};
+}
+
+// `account show-keys --account-id <id>` prints two UNLABELED hex lines: npk (64), then vpk (2368).
+static void scrapeHexLines(const std::string& out, std::string& npk, std::string& vpk) {
+    std::regex line(R"(^[0-9a-fA-F]{64,}$)");
+    std::istringstream ss(out);
+    std::string l;
+    while (std::getline(ss, l)) {
+        while (!l.empty() && (l.back() == '\r' || l.back() == ' ')) l.pop_back();
+        if (!std::regex_match(l, line)) continue;
+        if (l.size() == 64 && npk.empty()) npk = l;
+        else if (l.size() > 64 && vpk.empty()) vpk = l;
+    }
 }
 
 StdLogosResult SealedKeysImpl::getStatus() {
@@ -107,10 +125,10 @@ StdLogosResult SealedKeysImpl::generateReceiveKey() {
 }
 
 StdLogosResult SealedKeysImpl::showKeys(const std::string& accountId) {
-    CliResult r = runCli("account show-keys " + shq(accountId));
+    CliResult r = runCli("account show-keys --account-id " + shq(accountId));
     if (r.code != 0) return {false, {}, r.out.empty() ? "show-keys failed" : r.out};
-    std::string npk = scrapeKey(r.out, "npk");
-    std::string vpk = scrapeKey(r.out, "vpk");
+    std::string npk, vpk;
+    scrapeHexLines(r.out, npk, vpk);   // show-keys prints two unlabeled hex lines
     return {true, nlohmann::json{{"npk", npk}, {"vpk", vpk}, {"raw", r.out}}};
 }
 
@@ -153,9 +171,15 @@ StdLogosResult SealedKeysImpl::listSealed() {
     if (arrLine.empty())
         return {true, nlohmann::json{{"records", nlohmann::json::array()}, {"raw", r.out}}};
 
-    nlohmann::json records = nlohmann::json::parse(arrLine, nullptr, false);
-    if (records.is_discarded() || !records.is_array())
+    nlohmann::json all = nlohmann::json::parse(arrLine, nullptr, false);
+    if (all.is_discarded() || !all.is_array())
         return {true, nlohmann::json{{"records", nlohmann::json::array()}, {"raw", arrLine}}};
+    // Keep the privately-owned records — the ones this wallet's viewing key can unseal.
+    nlohmann::json records = nlohmann::json::array();
+    for (auto& r : all) {
+        std::string acc = r.value("account", "");
+        if (acc.rfind("Private/", 0) == 0) records.push_back(r);
+    }
     return {true, nlohmann::json{{"records", records}}};
 }
 
@@ -166,7 +190,7 @@ StdLogosResult SealedKeysImpl::unseal(const std::string& accountId,
         return {false, {}, "metadataUri and definitionId are required"};
 
     // Fetch the wallet's own viewing secret (d, z) — it stays inside this module.
-    CliResult keys = runCli("account show-keys --viewing-secret " + shq(accountId));
+    CliResult keys = runCli("account show-keys --account-id " + shq(accountId) + " --viewing-secret");
     if (keys.code != 0)
         return {false, {}, keys.out.empty() ? "show-keys --viewing-secret failed" : keys.out};
     std::string d = scrapeKey(keys.out, "vsk_d");

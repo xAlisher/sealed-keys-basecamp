@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Controls.Material 2.15
 import QtQuick.Layouts 1.15
 
 // Sealed — 0.1.1: receive-key collection + the sealed gallery (view & unseal).
@@ -11,6 +12,13 @@ Rectangle {
     id: root
     anchors.fill: parent
     color: "#0b0d12"
+
+    // Dark controls that match the Sealed palette (wax accent), instead of the default light style.
+    Material.theme: Material.Dark
+    Material.accent: "#b5303a"
+    Material.primary: "#b5303a"
+    Material.background: "#12151d"
+    Material.foreground: "#e8dfc8"
 
     // ── Palette (matches the Sealed collection) ──────────────────────────────
     readonly property color panel:   "#12151d"
