@@ -1,0 +1,21 @@
+{
+  "name": "sealed_keys",
+  "version": "0.1.0",
+  "type": "core",
+  "category": "blockchain",
+  "description": "Sealed — receive-key collection: create/open a wallet and export the key a curator shields NFTs to",
+  "main": "sealed_keys_plugin",
+  "icon": "",
+  "dependencies": [],
+
+  "nix": {
+    "packages": { "build": [], "runtime": [] },
+    "external_libraries": [],
+    "cmake": {
+      "find_packages": ["Qt6 COMPONENTS Core Qml Network"],
+      "extra_sources": ["src/plugin/SealedKeysPlugin.cpp"],
+      "extra_include_dirs": ["src"],
+      "extra_link_libraries": []
+    }
+  }
+}

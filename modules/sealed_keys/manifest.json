@@ -1,0 +1,17 @@
+{
+  "author": "Logos EcoDev",
+  "category": "blockchain",
+  "dependencies": [],
+  "description": "Sealed receive-key collection (core plugin)",
+  "icon": "",
+  "main": {
+    "linux-amd64":      "sealed_keys_plugin.so",
+    "linux-amd64-dev":  "sealed_keys_plugin.so",
+    "linux-x86_64-dev": "sealed_keys_plugin.so",
+    "darwin-arm64":     "sealed_keys_plugin.dylib"
+  },
+  "manifestVersion": "0.2.0",
+  "name": "sealed_keys",
+  "type": "core",
+  "version": "0.1.0"
+}
