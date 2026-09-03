@@ -41,8 +41,19 @@ public:
                                         const std::string& vpk,
                                         const std::string& path);
 
+    // ── 0.1.1: gallery + unseal ─────────────────────────────────────────────────
+    /// `account sync-private` — pull shielded state to the tip → { ok, raw }.
+    StdLogosResult syncPrivate();
+    /// `account list --long` — accounts the wallet holds → { accounts:[…], raw }.
+    StdLogosResult listSealed();
+    /// Unseal a sealed record with the wallet's own viewing key (vsk never leaves here):
+    /// `account show-keys --viewing-secret <id>` → (d,z), then `unseal …` → { url, note, … }.
+    StdLogosResult unseal(const std::string& accountId,
+                          const std::string& metadataUri,
+                          const std::string& definitionId);
+
     std::string name() const { return "sealed_keys"; }
-    std::string version() const { return "0.1.0"; }
+    std::string version() const { return "0.1.1"; }
 
 private:
     struct CliResult { int code; std::string out; };

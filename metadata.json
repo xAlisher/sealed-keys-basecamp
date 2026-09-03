@@ -1,6 +1,6 @@
 {
   "name": "sealed_keys",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "core",
   "category": "blockchain",
   "description": "Sealed — receive-key collection: create/open a wallet and export the key a curator shields NFTs to",

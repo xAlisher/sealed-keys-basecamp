@@ -2,12 +2,12 @@
   "author": "Logos EcoDev",
   "category": "blockchain",
   "dependencies": ["sealed_keys"],
-  "description": "Sealed — generate and export your receive-key",
+  "description": "Sealed — receive-key + sealed gallery: generate a key, then view and unseal your records",
   "icon": "icons/sealed.png",
   "main": {},
   "manifestVersion": "0.2.0",
   "name": "sealed_keys_ui",
   "type": "ui_qml",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "view": "qml/Main.qml"
 }

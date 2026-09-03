@@ -126,3 +126,63 @@ StdLogosResult SealedKeysImpl::exportReceiveKeyFile(const std::string& npk,
     if (!f) return {false, {}, "write to " + path + " failed"};
     return {true, nlohmann::json{{"ok", true}, {"path", path}}};
 }
+
+// ── 0.1.1: gallery + unseal ─────────────────────────────────────────────────────
+
+StdLogosResult SealedKeysImpl::syncPrivate() {
+    CliResult r = runCli("account sync-private");
+    if (r.code != 0) return {false, {}, r.out.empty() ? "sync-private failed" : r.out};
+    return {true, nlohmann::json{{"ok", true}, {"raw", r.out}}};
+}
+
+StdLogosResult SealedKeysImpl::listSealed() {
+    CliResult r = runCli("account list --long");
+    if (r.code != 0) return {false, {}, r.out.empty() ? "account list failed" : r.out};
+    // Best-effort: surface each "Private/<id>" account line for the gallery to render.
+    nlohmann::json accounts = nlohmann::json::array();
+    std::regex re(R"(Private/([1-9A-HJ-NP-Za-km-z]+))");
+    for (auto it = std::sregex_iterator(r.out.begin(), r.out.end(), re);
+         it != std::sregex_iterator(); ++it) {
+        accounts.push_back((*it)[1].str());
+    }
+    return {true, nlohmann::json{{"accounts", accounts}, {"raw", r.out}}};
+}
+
+StdLogosResult SealedKeysImpl::unseal(const std::string& accountId,
+                                      const std::string& metadataUri,
+                                      const std::string& definitionId) {
+    if (metadataUri.empty() || definitionId.empty())
+        return {false, {}, "metadataUri and definitionId are required"};
+
+    // Fetch the wallet's own viewing secret (d, z) — it stays inside this module.
+    CliResult keys = runCli("account show-keys --viewing-secret " + shq(accountId));
+    if (keys.code != 0)
+        return {false, {}, keys.out.empty() ? "show-keys --viewing-secret failed" : keys.out};
+    std::string d = scrapeKey(keys.out, "vsk_d");
+    std::string z = scrapeKey(keys.out, "vsk_z");
+    if (d.empty() || z.empty())
+        return {false, {}, "could not read viewing secret (vsk_d/vsk_z) from show-keys"};
+
+    // Decrypt the on-chain payload with the wallet CLI (read-only, no node needed).
+    CliResult u = runCli("unseal --metadata-uri " + shq(metadataUri) +
+                         " --definition-id " + shq(definitionId) +
+                         " --vsk-d " + shq(d) + " --vsk-z " + shq(z));
+    if (u.code != 0)
+        return {false, {}, u.out.empty() ? "unseal failed" : u.out};
+
+    // The command prints the sealed JSON ({"url":…,"note":…,…}) on its own line.
+    std::string payloadLine;
+    {
+        std::regex line(R"(\{[^\n]*\"url\"[^\n]*\})");
+        std::smatch m;
+        if (std::regex_search(u.out, m, line)) payloadLine = m[0].str();
+    }
+    if (payloadLine.empty())
+        return {true, nlohmann::json{{"raw", u.out}}};  // hand raw text to the UI
+
+    nlohmann::json parsed = nlohmann::json::parse(payloadLine, nullptr, false);
+    if (parsed.is_discarded())
+        return {true, nlohmann::json{{"raw", payloadLine}}};
+    parsed["ok"] = true;
+    return {true, parsed};
+}

@@ -40,12 +40,26 @@ Produces `logos-sealed_keys-module-lib.lgx` (linux-amd64 variant, `sealed_keys_p
 seven methods in the dispatch table). **New source files must be `git add`-ed first** — nix flakes
 only copy git-tracked files, so an untracked `.h`/`.cpp` fails codegen with "Failed to open header file".
 
-## Status — BUILD GREEN, install pending
-Universal-interface rework builds clean (`nix build .#lgx-portable`, exit 0); the `.lgx` carries
-`sealed_keys_plugin.so` with the generated glue and all seven methods. **Not yet installed** — a GUI
-install into Basecamp + a live key-collection walkthrough is wetware. Crypto/transport it feeds are
-already proven (`logos-nft-research/experiments/sealed-collection/`).
+## 0.1.1 — the sealed gallery + unseal
+Two tabs: **My sealed** (gallery) and **Get key** (the 0.1.0 flow). The gallery: `syncPrivate`,
+render each record as **redaction art** (deterministic from the definition id), and **Unseal** — which
+fetches the wallet's own viewing secret (`account show-keys --viewing-secret`, stays inside the module)
+and calls the wallet CLI `unseal` to decrypt the on-chain `metadata.uri` payload, flipping the card to
+**UNSEALED** with the curator's note + a copy-able link. The `unseal` wallet command is proven live
+(`lez-work` branch `nft/epic-a-wallet`: unit round-trip + a real-binary run — right key returns the
+exact payload, wrong key errors). New methods: `syncPrivate`, `listSealed`, `unseal`.
+
+> On-chain **auto-discovery** of a record's `definition_id` + `metadata.uri` (printed-copy → master →
+> metadata account) is not wired yet — 0.1.1 takes them via the "Add a sealed record" form (the curator
+> ships them with the NFT). That resolution is the 0.1.2 step.
+
+## Status — BUILD GREEN (0.1.1), install pending
+`nix build .#lgx-portable` → exit 0; `.lgx` carries `sealed_keys_plugin.so` with all **10** methods in
+the dispatch table (version 0.1.1). QML passes `qmllint` (exit 0). **Not yet installed** — a GUI install
+into Basecamp + a live walkthrough (sync → unseal → copy) is wetware. Crypto/transport are proven
+(`logos-nft-research/experiments/sealed-collection/` + the wallet `unseal` command).
 
 ## Roadmap
-- **0.1.0 (this):** receive-key collection.
-- **0.1.1:** sealed gallery — `sync`, list holdings, render redaction art, **unseal** (decrypt the `metadata.uri` payload with the viewing key) + copy; optional Logos Storage for >100 KiB media.
+- **0.1.0:** receive-key collection. ✓
+- **0.1.1 (this):** sealed gallery — sync, redaction art, **unseal** (decrypt `metadata.uri` with the viewing key) + copy. ✓ builds
+- **0.1.2:** on-chain auto-discovery of each owned record's `definition_id` + `metadata.uri`; optional Logos Storage for >100 KiB media.
