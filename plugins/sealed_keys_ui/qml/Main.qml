@@ -93,34 +93,53 @@ Rectangle {
 
     // ── Sealed gallery ──────────────────────────────────────────────────────────
     component GalleryView: ColumnLayout {
+        id: gallery
         spacing: 12
-        property var records: []   // [{account, definitionId, metadataUri}]
+        property var records: []   // [{account, definitionId, name, metadataUri}]
+        property bool showAdd: false
+
+        // Discover the wallet's sealed records on-chain (0.1.2) and populate the gallery.
+        function discover() {
+            var r = root.call("listSealed", [])
+            if (r && r.records) { records = r.records; syncMsg.text = "Found " + records.length + " sealed record(s)." }
+            else { syncMsg.text = "Discover: " + ((r && (r.error || r.raw)) || "nothing found") }
+        }
+        Component.onCompleted: if (root.cliFound) discover()
 
         RowLayout {
             Layout.fillWidth: true; spacing: 10
             Text { color: root.inkDim; font.pixelSize: 13; Layout.fillWidth: true; wrapMode: Text.WordWrap
-                   text: "Sync your wallet, then unseal a record with your viewing key. Add a record from the definition-id + metadata.uri your curator shipped." }
+                   text: "Sync pulls shielded state to the tip; your sealed records are then discovered on-chain. Unseal opens one with your viewing key (which never leaves the wallet)." }
             Button { text: "Sync"; onClicked: {
                 var r = root.call("syncPrivate", [])
-                syncMsg.text = r.ok ? "Synced." : ("Sync: " + (r.error || r.raw || "failed")) } }
+                if (!r.ok) { syncMsg.text = "Sync: " + (r.error || r.raw || "failed"); return }
+                gallery.discover() } }
+            Button { text: "Discover"; onClicked: gallery.discover() }
         }
         Text { id: syncMsg; color: root.inkDim; font.family: "monospace"; font.pixelSize: 11; text: "" }
 
-        // Add-a-record row (until on-chain discovery lands in 0.1.2).
+        // Manual add — optional fallback (a curator can paste a record before it's synced).
+        RowLayout {
+            Layout.fillWidth: true
+            Text { text: gallery.showAdd ? "▾ Add a record manually" : "▸ Add a record manually"
+                   color: root.inkDim; font.pixelSize: 12
+                   MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: gallery.showAdd = !gallery.showAdd } }
+            Item { Layout.fillWidth: true }
+        }
         Rectangle {
+            visible: gallery.showAdd
             Layout.fillWidth: true; radius: 8; color: root.panel; border.color: root.border; border.width: 1
             implicitHeight: addCol.implicitHeight + 20
             ColumnLayout {
                 id: addCol; anchors.fill: parent; anchors.margins: 10; spacing: 6
-                Text { text: "Add a sealed record"; color: root.ink; font.pixelSize: 14 }
-                TextField { id: fAcc;  Layout.fillWidth: true; color: root.ink; font.pixelSize: 12; placeholderText: "your private account id (Private/…)" }
+                TextField { id: fAcc;  Layout.fillWidth: true; color: root.ink; font.pixelSize: 12; placeholderText: "your account id (Private/… or Public/…)" }
                 TextField { id: fDef;  Layout.fillWidth: true; color: root.ink; font.pixelSize: 12; placeholderText: "NFT definition id (base58)" }
                 TextField { id: fUri;  Layout.fillWidth: true; color: root.ink; font.pixelSize: 12; placeholderText: "metadata.uri (sealed:v1:…)" }
                 Button { text: "Add to gallery"; enabled: fDef.text !== "" && fUri.text !== ""
                     onClicked: {
-                        var arr = records.slice()
-                        arr.push({ account: fAcc.text, definitionId: fDef.text, metadataUri: fUri.text })
-                        records = arr; fAcc.text=""; fDef.text=""; fUri.text=""
+                        var arr = gallery.records.slice()
+                        arr.push({ account: fAcc.text, definitionId: fDef.text, name: "", metadataUri: fUri.text })
+                        gallery.records = arr; fAcc.text=""; fDef.text=""; fUri.text=""
                     } }
             }
         }
@@ -129,10 +148,11 @@ Rectangle {
         Flow {
             Layout.fillWidth: true; spacing: 16
             Repeater {
-                model: records
+                model: gallery.records
                 delegate: SealedCard {
                     account: modelData.account
                     definitionId: modelData.definitionId
+                    recordName: modelData.name || ""
                     metadataUri: modelData.metadataUri
                 }
             }
@@ -145,6 +165,7 @@ Rectangle {
         id: card
         property string account
         property string definitionId
+        property string recordName
         property string metadataUri
         property bool   unsealed: false
         property string url: ""
@@ -176,6 +197,14 @@ Rectangle {
                 }
             }
         }
+        // Record name (top strip)
+        Text {
+            visible: card.recordName !== "" && !card.unsealed
+            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; anchors.margins: 10
+            text: card.recordName; color: "#20242c"; font.pixelSize: 12; font.bold: true
+            elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter
+        }
+
         // "SEALED" wax stamp, hidden once unsealed
         Rectangle {
             visible: !card.unsealed

@@ -49,17 +49,23 @@ and calls the wallet CLI `unseal` to decrypt the on-chain `metadata.uri` payload
 (`lez-work` branch `nft/epic-a-wallet`: unit round-trip + a real-binary run — right key returns the
 exact payload, wrong key errors). New methods: `syncPrivate`, `listSealed`, `unseal`.
 
-> On-chain **auto-discovery** of a record's `definition_id` + `metadata.uri` (printed-copy → master →
-> metadata account) is not wired yet — 0.1.1 takes them via the "Add a sealed record" form (the curator
-> ships them with the NFT). That resolution is the 0.1.2 step.
+## 0.1.2 — on-chain auto-discovery
+The gallery now **discovers your sealed records on-chain** — no pasting ids or uris. `listSealed` calls
+the wallet CLI `sealed-records`, which walks every account the wallet holds, keeps the NFT holdings, and
+resolves each `definition_id → definition → metadata_id → metadata.uri`, returning the `sealed:v1:`
+records as `[{account, definitionId, name, metadataUri}]`. **Sync** then **Discover** populates the
+cards; a manual "Add a record" form remains as a fallback. Proven live on the Sneg node (define an NFT
+with a sealed uri → print → `sealed-records` returns the resolved record — see
+`logos-nft-research/experiments/nft-discovery/`).
 
-## Status — BUILD GREEN (0.1.1), install pending
+## Status — BUILD GREEN (0.1.2), install pending
 `nix build .#lgx-portable` → exit 0; `.lgx` carries `sealed_keys_plugin.so` with all **10** methods in
-the dispatch table (version 0.1.1). QML passes `qmllint` (exit 0). **Not yet installed** — a GUI install
-into Basecamp + a live walkthrough (sync → unseal → copy) is wetware. Crypto/transport are proven
-(`logos-nft-research/experiments/sealed-collection/` + the wallet `unseal` command).
+the dispatch table (version 0.1.2). QML passes `qmllint` (exit 0). The wallet commands it stands on
+(`unseal`, `sealed-records`) are **proven live** on the node. **Not yet installed** — a GUI install into
+Basecamp + a live walkthrough (sync → discover → unseal → copy) is wetware.
 
 ## Roadmap
 - **0.1.0:** receive-key collection. ✓
-- **0.1.1 (this):** sealed gallery — sync, redaction art, **unseal** (decrypt `metadata.uri` with the viewing key) + copy. ✓ builds
-- **0.1.2:** on-chain auto-discovery of each owned record's `definition_id` + `metadata.uri`; optional Logos Storage for >100 KiB media.
+- **0.1.1:** sealed gallery — sync, redaction art, **unseal** (decrypt `metadata.uri` with the viewing key) + copy. ✓
+- **0.1.2 (this):** on-chain auto-discovery of each owned record's `definition_id` + `metadata.uri`. ✓ builds + proven live
+- **0.1.3:** optional Logos Storage for >100 KiB media; private-account discovery hardening.

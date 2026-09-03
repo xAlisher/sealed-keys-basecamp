@@ -53,7 +53,7 @@ public:
                           const std::string& definitionId);
 
     std::string name() const { return "sealed_keys"; }
-    std::string version() const { return "0.1.1"; }
+    std::string version() const { return "0.1.2"; }
 
 private:
     struct CliResult { int code; std::string out; };

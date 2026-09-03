@@ -8,6 +8,6 @@
   "manifestVersion": "0.2.0",
   "name": "sealed_keys_ui",
   "type": "ui_qml",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "view": "qml/Main.qml"
 }

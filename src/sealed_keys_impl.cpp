@@ -136,16 +136,27 @@ StdLogosResult SealedKeysImpl::syncPrivate() {
 }
 
 StdLogosResult SealedKeysImpl::listSealed() {
-    CliResult r = runCli("account list --long");
-    if (r.code != 0) return {false, {}, r.out.empty() ? "account list failed" : r.out};
-    // Best-effort: surface each "Private/<id>" account line for the gallery to render.
-    nlohmann::json accounts = nlohmann::json::array();
-    std::regex re(R"(Private/([1-9A-HJ-NP-Za-km-z]+))");
-    for (auto it = std::sregex_iterator(r.out.begin(), r.out.end(), re);
-         it != std::sregex_iterator(); ++it) {
-        accounts.push_back((*it)[1].str());
+    // 0.1.2: on-chain auto-discovery. `sealed-records` walks the wallet, resolves each NFT
+    // holding through definition -> metadata -> uri, and prints the sealed:v1: records as JSON.
+    CliResult r = runCli("sealed-records");
+    if (r.code != 0) return {false, {}, r.out.empty() ? "sealed-records failed" : r.out};
+
+    // The JSON array is the last line that looks like one (CLI prints wallet-setup noise first).
+    std::string arrLine;
+    {
+        std::regex line(R"(\[.*\])");
+        for (auto it = std::sregex_iterator(r.out.begin(), r.out.end(), line);
+             it != std::sregex_iterator(); ++it) {
+            arrLine = (*it).str();  // keep the last match
+        }
     }
-    return {true, nlohmann::json{{"accounts", accounts}, {"raw", r.out}}};
+    if (arrLine.empty())
+        return {true, nlohmann::json{{"records", nlohmann::json::array()}, {"raw", r.out}}};
+
+    nlohmann::json records = nlohmann::json::parse(arrLine, nullptr, false);
+    if (records.is_discarded() || !records.is_array())
+        return {true, nlohmann::json{{"records", nlohmann::json::array()}, {"raw", arrLine}}};
+    return {true, nlohmann::json{{"records", records}}};
 }
 
 StdLogosResult SealedKeysImpl::unseal(const std::string& accountId,
