@@ -5,19 +5,24 @@ A Basecamp module for the **Sealed** collection (the on-chain wing of the Museum
 ## Why key-collection first
 Distribution is **shield-to-recipient**: the curator must have each recipient's `(npk, vpk)` before they can encrypt the payload to that viewing key and shield the NFT. So collecting keys is the first real step (see `logos-nft-research/docs/journey-and-architecture.md`).
 
-## Structure (mirrors `logos-wallet-basecamp`)
+## Structure (universal core module + ui_qml)
 ```
-metadata.json                         core-plugin build config (Qt6 + cmake)
-modules/sealed_keys/manifest.json     installed core manifest (.so per platform)
+metadata.json                         core module config: interface "universal" + codegen.impl_header
+src/sealed_keys_impl.h                SealedKeysImpl : public LogosModuleContext (the contract)
+src/sealed_keys_impl.cpp              methods -> wallet CLI (popen); returns StdLogosResult (JSON)
 plugins/sealed_keys_ui/manifest.json  installed ui_qml manifest (depends on sealed_keys)
-src/plugin/SealedKeysPlugin.{h,cpp}   C++ plugin: Q_INVOKABLE methods -> wallet CLI (QProcess)
 plugins/sealed_keys_ui/qml/Main.qml   the key-collection UI
-CMakeLists.txt                        nix-builder path + local-dev path
+CMakeLists.txt                        logos_module(NAME sealed_keys SOURCES … ) — builder glue
 ```
 
 ## Integration
-The plugin **shells out to the `wallet` CLI** via `QProcess` (same approach as `logos-wallet-basecamp`; no FFI in 0.1.0). QML calls it with `logos.callModule("sealed_keys", "<method>", [args])`. Methods:
-- `getStatus` / `getConfig` / `setCliPath` — locate the wallet binary.
+Modern **universal** interface: the contract is derived from `src/sealed_keys_impl.h`
+(`SealedKeysImpl : public LogosModuleContext`, methods return `StdLogosResult`, take
+`const std::string&`). The `logos-module-builder` generates the plugin glue (`logos_module_dispatch` /
+`_get_methods`) — no hand-written QObject. It is **Qt-free** and **shells out to the `wallet` CLI**
+via `popen` (no FFI in 0.1.0). QML calls it with `logos.callModule("sealed_keys", "<method>", [args])`
+(double-JSON-encoded return; unwrap with the `parse()` helper). Methods:
+- `getStatus` / `setCliPath` / `setWalletHome` — locate the wallet binary + home dir.
 - `createPrivateAccount` → `account new private` (the recipient's identity + mnemonic to back up).
 - `generateReceiveKey` → `account new private-accounts-key` → `{ npk, vpk }` (the vsk stays in the wallet, never shared).
 - `showKeys(accountId)` → `account show-keys` → `{ npk, vpk }`.
@@ -27,17 +32,19 @@ The plugin **shells out to the `wallet` CLI** via `QProcess` (same approach as `
 1. Wallet CLI status / set path.  2. **Create wallet** (back up the mnemonic).  3. **Generate receive-key** (shows npk + vpk).  4. **Export `.keys`** and send it to the curator out-of-band.
 
 ## Build
-Nix (Basecamp module builder), same as the reference:
+Nix (Basecamp module builder):
 ```
-nix build .#lgx-portable      # once flake.nix is wired to the module-builder input
+TMPDIR=/extra/tmp nix build .#lgx-portable
 ```
-Local dev (needs Qt6 + the Logos C++ SDK via `LOGOS_CPP_SDK_ROOT` / `LOGOS_LIBLOGOS_HEADERS`):
-```
-cmake -B build && cmake --build build
-```
+Produces `logos-sealed_keys-module-lib.lgx` (linux-amd64 variant, `sealed_keys_plugin.so`, all
+seven methods in the dispatch table). **New source files must be `git add`-ed first** — nix flakes
+only copy git-tracked files, so an untracked `.h`/`.cpp` fails codegen with "Failed to open header file".
 
-## Status — SCAFFOLD
-Skeleton + plugin methods + UI are written and mirror a known-good module. **Not yet built/installed** — that needs the Basecamp module build env (nix flake input + C++ SDK) and a GUI install to verify, which is wetware. Crypto/transport it feeds are already proven (`logos-nft-research/experiments/sealed-collection/`).
+## Status — BUILD GREEN, install pending
+Universal-interface rework builds clean (`nix build .#lgx-portable`, exit 0); the `.lgx` carries
+`sealed_keys_plugin.so` with the generated glue and all seven methods. **Not yet installed** — a GUI
+install into Basecamp + a live key-collection walkthrough is wetware. Crypto/transport it feeds are
+already proven (`logos-nft-research/experiments/sealed-collection/`).
 
 ## Roadmap
 - **0.1.0 (this):** receive-key collection.
