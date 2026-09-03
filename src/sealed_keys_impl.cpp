@@ -94,8 +94,18 @@ static void scrapeHexLines(const std::string& out, std::string& npk, std::string
     }
 }
 
+static void dbg(const std::string& msg) {
+    if (std::ofstream f("/extra/tmp/sealed-keys-debug.log", std::ios::app); f) f << msg << "\n";
+}
+
 StdLogosResult SealedKeysImpl::getStatus() {
     std::string cli = resolveCli();
+    const char* env_bin = std::getenv("LEE_WALLET_BIN");
+    const char* env_path = std::getenv("PATH");
+    dbg(std::string("getStatus: LEE_WALLET_BIN=") + (env_bin ? env_bin : "(null)") +
+        " execTest=" + (env_bin && isExecutable(env_bin) ? "yes" : "no") +
+        " m_cliPath=[" + m_cliPath + "] resolved=[" + cli + "]" +
+        " PATH=" + (env_path ? std::string(env_path).substr(0, 80) : "(null)"));
     return {true, nlohmann::json{{"cliFound", !cli.empty()}, {"cliPath", cli}}};
 }
 

@@ -1,5 +1,6 @@
 {
   "name": "sealed_keys_ui",
+  "display_name": "Sealed records",
   "version": "0.1.2",
   "type": "ui_qml",
   "category": "blockchain",
