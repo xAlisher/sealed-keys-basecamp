@@ -4,18 +4,20 @@
   "type": "core",
   "category": "blockchain",
   "description": "Sealed — receive-key collection: create/open a wallet and export the key a curator shields NFTs to",
+  "author": "xAlisher",
+  "interface": "universal",
   "main": "sealed_keys_plugin",
+  "codegen": {
+    "impl_header": "sealed_keys_impl.h"
+  },
   "icon": "",
   "dependencies": [],
+  "capabilities": [],
 
   "nix": {
-    "packages": { "build": [], "runtime": [] },
     "external_libraries": [],
     "cmake": {
-      "find_packages": ["Qt6 COMPONENTS Core Qml Network"],
-      "extra_sources": ["src/plugin/SealedKeysPlugin.cpp"],
-      "extra_include_dirs": ["src"],
-      "extra_link_libraries": []
+      "extra_include_dirs": ["src"]
     }
   }
 }

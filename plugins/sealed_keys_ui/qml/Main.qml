@@ -27,7 +27,8 @@ Rectangle {
     property string vpk: ""
     property string status: ""
 
-    function parse(s) { try { return JSON.parse(s) } catch(e) { return { raw: s } } }
+    // logos.callModule returns a double-JSON-encoded string; unwrap to an object.
+    function parse(s) { try { var v = JSON.parse(s); if (typeof v === "string") v = JSON.parse(v); return v } catch(e) { return { raw: s } } }
 
     function refreshStatus() {
         if (typeof logos === "undefined" || !logos.callModule) { status = "Basecamp bridge unavailable"; return }
