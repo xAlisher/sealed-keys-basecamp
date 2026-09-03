@@ -1,13 +1,20 @@
 {
-  "author": "Logos EcoDev",
-  "category": "blockchain",
-  "dependencies": ["sealed_keys"],
-  "description": "Sealed — receive-key + sealed gallery: generate a key, then view and unseal your records",
-  "icon": "icons/sealed.png",
-  "main": {},
-  "manifestVersion": "0.2.0",
   "name": "sealed_keys_ui",
-  "type": "ui_qml",
   "version": "0.1.2",
-  "view": "qml/Main.qml"
+  "type": "ui_qml",
+  "category": "blockchain",
+  "description": "Sealed — receive-key + sealed gallery: generate a key, then discover and unseal your records",
+  "view": "qml/Main.qml",
+  "icon": "icons/sealed.png",
+  "dependencies": ["sealed_keys"],
+  "nix": {
+    "packages": { "build": [], "runtime": [] },
+    "external_libraries": [],
+    "cmake": {
+      "find_packages": [],
+      "extra_sources": [],
+      "extra_include_dirs": [],
+      "extra_link_libraries": []
+    }
+  }
 }
