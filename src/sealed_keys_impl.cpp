@@ -1,6 +1,7 @@
 #include "sealed_keys_impl.h"
 
 #include <array>
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -82,13 +83,17 @@ std::string SealedKeysImpl::scrapeKey(const std::string& out, const std::string&
 }
 
 // `account show-keys --account-id <id>` prints two UNLABELED hex lines: npk (64), then vpk (2368).
+static bool isHexLine(const std::string& l) {
+    if (l.size() < 64) return false;
+    for (char c : l) if (!std::isxdigit(static_cast<unsigned char>(c))) return false;
+    return true;
+}
 static void scrapeHexLines(const std::string& out, std::string& npk, std::string& vpk) {
-    std::regex line(R"(^[0-9a-fA-F]{64,}$)");
     std::istringstream ss(out);
     std::string l;
     while (std::getline(ss, l)) {
         while (!l.empty() && (l.back() == '\r' || l.back() == ' ')) l.pop_back();
-        if (!std::regex_match(l, line)) continue;
+        if (!isHexLine(l)) continue;                 // manual — no std::regex on long lines
         if (l.size() == 64 && npk.empty()) npk = l;
         else if (l.size() > 64 && vpk.empty()) vpk = l;
     }
@@ -169,14 +174,14 @@ StdLogosResult SealedKeysImpl::listSealed() {
     CliResult r = runCli("sealed-records");
     if (r.code != 0) return {false, {}, r.out.empty() ? "sealed-records failed" : r.out};
 
-    // The JSON array is the last line that looks like one (CLI prints wallet-setup noise first).
+    // Extract the JSON array by first '[' .. last ']' (plain string ops — NEVER std::regex here:
+    // the output is ~KBs and std::regex `.*` recurses per char and stack-overflows -> SIGSEGV).
     std::string arrLine;
     {
-        std::regex line(R"(\[.*\])");
-        for (auto it = std::sregex_iterator(r.out.begin(), r.out.end(), line);
-             it != std::sregex_iterator(); ++it) {
-            arrLine = (*it).str();  // keep the last match
-        }
+        size_t lb = r.out.find('[');
+        size_t rb = r.out.rfind(']');
+        if (lb != std::string::npos && rb != std::string::npos && rb > lb)
+            arrLine = r.out.substr(lb, rb - lb + 1);
     }
     if (arrLine.empty())
         return {true, nlohmann::json{{"records", nlohmann::json::array()}, {"raw", r.out}}};
@@ -215,12 +220,14 @@ StdLogosResult SealedKeysImpl::unseal(const std::string& accountId,
     if (u.code != 0)
         return {false, {}, u.out.empty() ? "unseal failed" : u.out};
 
-    // The command prints the sealed JSON ({"url":…,"note":…,…}) on its own line.
+    // The command prints the sealed JSON ({"title":…,"url":…,…}); extract by first '{'..last '}'
+    // via plain string ops (NOT std::regex — it stack-overflows on long lines -> SIGSEGV).
     std::string payloadLine;
     {
-        std::regex line(R"(\{[^\n]*\"url\"[^\n]*\})");
-        std::smatch m;
-        if (std::regex_search(u.out, m, line)) payloadLine = m[0].str();
+        size_t lb = u.out.find('{');
+        size_t rb = u.out.rfind('}');
+        if (lb != std::string::npos && rb != std::string::npos && rb > lb)
+            payloadLine = u.out.substr(lb, rb - lb + 1);
     }
     if (payloadLine.empty())
         return {true, nlohmann::json{{"raw", u.out}}};  // hand raw text to the UI
