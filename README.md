@@ -1,6 +1,10 @@
-# Sealed — receive-key collection module (0.1.0)
+# Sealed records — a private-NFT Basecamp app (PoC)
 
-A Basecamp module for the **Sealed** collection (the on-chain wing of the Museum of Civil Liberties). **0.1.0 scope: key collection only** — a recipient creates/opens a wallet, generates the **receive-key** (npk + vpk) a curator shields their sealed record to, and exports it as a `.keys` file to send back. It does **not** yet display or unseal NFTs — that is **0.1.1**.
+> **Disclaimer.** This is an independent community project intended to demonstrate some of the capabilities and potential uses of the Logos technology stack. It has been developed independently by its contributor(s) and is not built for, on behalf of, or as part of the work of Logos or the Institute of Free Technology. It has not been reviewed, audited, approved, or endorsed by Logos or the Institute of Free Technology. The project, including its code, documentation, views, and functionality, is the sole responsibility of its contributor(s) and should not be attributed to Logos or the Institute of Free Technology.
+>
+> Proof-of-concept only — test / dev-mode, throwaway keys, local testnet. Do not use in production.
+
+A Basecamp app for **Sealed records** — the on-chain wing of the *Museum of Civil Liberties*. It shows a collection of NFTs grouped into exhibit halls; each is **sealed** (a redacted paper with a wax stamp, owner hidden, contents encrypted). The holder **unseals** with their own viewing key to reveal the document's title, source and link — proving ownership privately, on their terms. It shells the Logos LEZ `wallet` CLI (with the NFT commands this PoC added on a fork). Research + findings: [xAlisher/logos-nft-research](https://github.com/xAlisher/logos-nft-research).
 
 ## Why key-collection first
 Distribution is **shield-to-recipient**: the curator must have each recipient's `(npk, vpk)` before they can encrypt the payload to that viewing key and shield the NFT. So collecting keys is the first real step (see `logos-nft-research/docs/journey-and-architecture.md`).
