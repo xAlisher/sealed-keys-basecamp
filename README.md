@@ -4,10 +4,10 @@
 >
 > Proof-of-concept only — test / dev-mode, throwaway keys, local testnet. Do not use in production.
 
-A Basecamp app for **Sealed records** — the on-chain wing of the *Museum of Civil Liberties*. It shows a collection of NFTs grouped into exhibit halls; each is **sealed** (a redacted paper with a wax stamp, owner hidden, contents encrypted). The holder **unseals** with their own viewing key to reveal the document's title, source and link — proving ownership privately, on their terms. It shells the Logos LEZ `wallet` CLI (with the NFT commands this PoC added on a fork). Research + findings: [xAlisher/logos-nft-research](https://github.com/xAlisher/logos-nft-research).
+A Basecamp app for **Sealed records** — the on-chain wing of the *Museum of Civil Liberties*. It shows a collection of NFTs grouped into exhibit halls; each is **sealed** (a redacted paper with a wax stamp, owner hidden, contents encrypted). The holder **unseals** with their own viewing key to reveal the document's title, source and link — proving ownership privately, on their terms. It shells the Logos LEZ `wallet` CLI (with the NFT commands this PoC added on a fork). Research + findings: [xAlisher/nft-research-for-logos](https://github.com/xAlisher/nft-research-for-logos).
 
 ## Why key-collection first
-Distribution is **shield-to-recipient**: the curator must have each recipient's `(npk, vpk)` before they can encrypt the payload to that viewing key and shield the NFT. So collecting keys is the first real step (see `logos-nft-research/docs/journey-and-architecture.md`).
+Distribution is **shield-to-recipient**: the curator must have each recipient's `(npk, vpk)` before they can encrypt the payload to that viewing key and shield the NFT. So collecting keys is the first real step (see `nft-research-for-logos/docs/journey-and-architecture.md`).
 
 ## Structure (universal core module + ui_qml)
 ```
@@ -60,7 +60,7 @@ resolves each `definition_id → definition → metadata_id → metadata.uri`, r
 records as `[{account, definitionId, name, metadataUri}]`. **Sync** then **Discover** populates the
 cards; a manual "Add a record" form remains as a fallback. Proven live on the Sneg node (define an NFT
 with a sealed uri → print → `sealed-records` returns the resolved record — see
-`logos-nft-research/experiments/nft-discovery/`).
+`nft-research-for-logos/experiments/nft-discovery/`).
 
 ## Status — BUILD GREEN (0.1.2), install pending
 `nix build .#lgx-portable` → exit 0; `.lgx` carries `sealed_keys_plugin.so` with all **10** methods in
